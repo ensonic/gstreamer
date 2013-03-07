@@ -38,6 +38,8 @@
 #include <gst/gstcaps.h>
 #include <gst/gstchildproxy.h>
 #include <gst/gstclock.h>
+#include <gst/gstcontrolbinding.h>
+#include <gst/gstcontrolparser.h>
 #include <gst/gstcontrolsource.h>
 #include <gst/gstdatetime.h>
 #include <gst/gstdebugutils.h>

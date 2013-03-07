@@ -58,6 +58,7 @@ libgstreamer_@GST_API_VERSION@_la_SOURCES = \
 	gstchildproxy.c		\
 	gstclock.c		\
 	gstcontrolbinding.c \
+	gstcontrolparser.c \
 	gstcontrolsource.c \
 	gstdatetime.c		\
 	gstdebugutils.c		\
@@ -154,6 +155,7 @@ gst_headers =			\
 	gstclock.h		\
 	gstcompat.h		\
 	gstcontrolbinding.h \
+	gstcontrolparser.h \
 	gstcontrolsource.h \
 	gstdatetime.h		\
 	gstdebugutils.h		\

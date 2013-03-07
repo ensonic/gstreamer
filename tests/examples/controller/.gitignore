@@ -1,7 +1,10 @@
 audio-example
 control-sources
+controlparser
 text-color-example
 *.bb
 *.bbg
 *.da
 *.gcno
+ctrl*.dat
+

@@ -429,6 +429,10 @@ static void
 setup (void)
 {
   gst_element_register (NULL, "testobj", GST_RANK_NONE, GST_TYPE_TEST_OBJ);
+
+  gst_control_parser_init ();
+  gst_control_binding_register ("testcb", GST_TYPE_TEST_CONTROL_BINDING);
+  gst_control_source_register ("testcs", GST_TYPE_TEST_CONTROL_SOURCE);
 }
 
 static void
@@ -699,6 +703,112 @@ GST_START_TEST (controller_bind_twice)
 GST_END_TEST;
 
 
+GST_START_TEST (controlparser_empty_desc)
+{
+  GError *error = NULL;
+  GstElement *elem = gst_element_factory_make ("testobj", NULL);
+
+  fail_unless (!gst_control_parser_parse ("", GST_OBJECT_CAST (elem), "int",
+          &error));
+  fail_unless (error != NULL);
+  ck_assert_int_eq (error->code, GST_CONTROL_PARSER_ERROR_EXPECT_FUNCTION_NAME);
+
+  g_error_free (error);
+  gst_object_unref (elem);
+}
+
+GST_END_TEST;
+
+
+GST_START_TEST (controlparser_invalid_function_name)
+{
+  GError *error = NULL;
+  GstElement *elem = gst_element_factory_make ("testobj", NULL);
+
+  fail_unless (!gst_control_parser_parse ("123func()", GST_OBJECT_CAST (elem),
+          "int", &error));
+  fail_unless (error != NULL);
+  ck_assert_int_eq (error->code, GST_CONTROL_PARSER_ERROR_EXPECT_FUNCTION_NAME);
+
+  g_error_free (error);
+  gst_object_unref (elem);
+}
+
+GST_END_TEST;
+
+
+GST_START_TEST (controlparser_leading_whitespace)
+{
+  GError *error = NULL;
+  GstElement *elem = gst_element_factory_make ("testobj", NULL);
+
+  fail_unless (gst_control_parser_parse ("  testcb(control-source=testcs())",
+          GST_OBJECT_CAST (elem), "int", &error));
+  fail_unless (error == NULL);
+
+  gst_object_unref (elem);
+}
+
+GST_END_TEST;
+
+GST_START_TEST (controlparser_whitespace_around_paren)
+{
+  GError *error = NULL;
+  GstElement *elem = gst_element_factory_make ("testobj", NULL);
+
+  fail_unless (gst_control_parser_parse ("testcb ( control-source=testcs())",
+          GST_OBJECT_CAST (elem), "int", &error));
+  fail_unless (error == NULL);
+
+  gst_object_unref (elem);
+}
+
+GST_END_TEST;
+
+GST_START_TEST (controlparser_whitespace_around_assignment)
+{
+  GError *error = NULL;
+  GstElement *elem = gst_element_factory_make ("testobj", NULL);
+
+  fail_unless (gst_control_parser_parse ("testcb(control-source = testcs())",
+          GST_OBJECT_CAST (elem), "int", &error));
+  fail_unless (error == NULL);
+
+  gst_object_unref (elem);
+}
+
+GST_END_TEST;
+
+GST_START_TEST (controlparser_multiline)
+{
+  GError *error = NULL;
+  GstElement *elem = gst_element_factory_make ("testobj", NULL);
+
+  fail_unless (gst_control_parser_parse ("testcb(\n"
+          "  control-source=testcs()\n" ")", GST_OBJECT_CAST (elem), "int",
+          &error));
+  fail_unless (error == NULL);
+
+  gst_object_unref (elem);
+}
+
+GST_END_TEST;
+
+GST_START_TEST (controlparser_all_features_parsed)
+{
+  GError *error = NULL;
+  GstElement *elem = gst_element_factory_make ("testobj", NULL);
+
+  fail_unless (gst_control_parser_parse ("testcb(control-source=testcs())",
+          GST_OBJECT_CAST (elem), "int", &error));
+  fail_unless (error == NULL);
+
+  gst_object_unref (elem);
+}
+
+GST_END_TEST;
+
+
 static Suite *
 gst_controller_suite (void)
 {
@@ -717,6 +827,17 @@ gst_controller_suite (void)
   tcase_add_test (tc, controller_any_gobject);
   tcase_add_test (tc, controller_controlsource_refcounts);
   tcase_add_test (tc, controller_bind_twice);
+
+  tc = tcase_create ("parser");
+  suite_add_tcase (s, tc);
+  tcase_add_checked_fixture (tc, setup, teardown);
+  tcase_add_test (tc, controlparser_empty_desc);
+  tcase_add_test (tc, controlparser_invalid_function_name);
+  tcase_add_test (tc, controlparser_leading_whitespace);
+  tcase_add_test (tc, controlparser_whitespace_around_paren);
+  tcase_add_test (tc, controlparser_whitespace_around_assignment);
+  tcase_add_test (tc, controlparser_multiline);
+  tcase_add_test (tc, controlparser_all_features_parsed);
 
   return s;
 }

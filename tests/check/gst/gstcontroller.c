@@ -205,6 +205,11 @@ gst_test_obj_get_type (void)
 
 /* test control source */
 
+enum
+{
+  PROP_VALUE = 1
+};
+
 #define GST_TYPE_TEST_CONTROL_SOURCE            (gst_test_control_source_get_type ())
 #define GST_TEST_CONTROL_SOURCE(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), GST_TYPE_TEST_CONTROL_SOURCE, GstTestControlSource))
 #define GST_TEST_CONTROL_SOURCE_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), GST_TYPE_TEST_CONTROL_SOURCE, GstTestControlSourceClass))
@@ -257,6 +262,39 @@ gst_test_control_source_get_value_array (GstTestControlSource * self,
 }
 
 static void
+gst_test_control_source_get_property (GObject * object,
+    guint property_id, GValue * value, GParamSpec * pspec)
+{
+  GstTestControlSource *self = GST_TEST_CONTROL_SOURCE (object);
+
+  switch (property_id) {
+    case PROP_VALUE:
+      g_value_set_double (value, self->value);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+  }
+}
+
+static void
+gst_test_control_source_set_property (GObject * object,
+    guint property_id, const GValue * value, GParamSpec * pspec)
+{
+  GstTestControlSource *self = GST_TEST_CONTROL_SOURCE (object);
+
+  switch (property_id) {
+    case PROP_VALUE:
+      self->value = g_value_get_double (value);
+      GST_DEBUG ("value=%lf", self->value);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+  }
+}
+
+static void
 gst_test_control_source_init (GstTestControlSource * self)
 {
   GstControlSource *cs = (GstControlSource *) self;
@@ -265,6 +303,21 @@ gst_test_control_source_init (GstTestControlSource * self)
   cs->get_value_array = (GstControlSourceGetValueArray)
       gst_test_control_source_get_value_array;
   self->value = 0.0;
+}
+
+static void
+gst_test_control_source_class_init (GstTestObjClass * klass)
+{
+  GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
+
+  gobject_class->set_property = gst_test_control_source_set_property;
+  gobject_class->get_property = gst_test_control_source_get_property;
+
+  g_object_class_install_property (gobject_class, PROP_VALUE,
+      g_param_spec_double ("value",
+          "value prop",
+          "value parameter",
+          0.0, 100.0, 0.0, G_PARAM_READWRITE | GST_PARAM_CONTROLLABLE));
 }
 
 static GType
@@ -278,7 +331,7 @@ gst_test_control_source_get_type (void)
       (guint16) sizeof (GstTestControlSourceClass),
       NULL,                     // base_init
       NULL,                     // base_finalize
-      NULL,                     // class_init
+      (GClassInitFunc) gst_test_control_source_class_init,      // class_init
       NULL,                     // class_finalize
       NULL,                     // class_data
       (guint16) sizeof (GstTestControlSource),
@@ -785,8 +838,9 @@ GST_START_TEST (controlparser_multiline)
   GstElement *elem = gst_element_factory_make ("testobj", NULL);
 
   fail_unless (gst_control_parser_parse ("testcb(\n"
-          "  control-source=testcs()\n" ")", GST_OBJECT_CAST (elem), "int",
-          &error));
+          "  control-source=testcs(\n"
+          "    value=1.0\n"
+          "  )\n" ")", GST_OBJECT_CAST (elem), "int", &error));
   fail_unless (error == NULL);
 
   gst_object_unref (elem);

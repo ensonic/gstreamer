@@ -579,6 +579,7 @@ init_post (GOptionContext * context, GOptionGroup * group, gpointer data,
   g_type_class_ref (gst_pad_get_type ());
   g_type_class_ref (gst_element_factory_get_type ());
   g_type_class_ref (gst_element_get_type ());
+  g_type_class_ref (gst_tracer_factory_get_type ());
   g_type_class_ref (gst_type_find_factory_get_type ());
   g_type_class_ref (gst_bin_get_type ());
   g_type_class_ref (gst_bus_get_type ());
@@ -706,6 +707,10 @@ init_post (GOptionContext * context, GOptionGroup * group, gpointer data,
       glib_minor_version, glib_micro_version);
   GST_INFO ("GLib headers version: %d.%d.%d", GLIB_MAJOR_VERSION,
       GLIB_MINOR_VERSION, GLIB_MICRO_VERSION);
+
+#ifndef GST_DISABLE_GST_DEBUG
+  _priv_gst_tracer_init ();
+#endif
 
   return TRUE;
 }
@@ -940,6 +945,9 @@ gst_deinit (void)
     GST_DEBUG ("already deinitialized");
     return;
   }
+#ifndef GST_DISABLE_GST_DEBUG
+  _priv_gst_tracer_deinit ();
+#endif
 
   g_thread_pool_set_max_unused_threads (0);
   bin_class = GST_BIN_CLASS (g_type_class_peek (gst_bin_get_type ()));
@@ -973,6 +981,7 @@ gst_deinit (void)
   g_type_class_unref (g_type_class_peek (gst_pad_get_type ()));
   g_type_class_unref (g_type_class_peek (gst_element_factory_get_type ()));
   g_type_class_unref (g_type_class_peek (gst_element_get_type ()));
+  g_type_class_unref (g_type_class_peek (gst_tracer_factory_get_type ()));
   g_type_class_unref (g_type_class_peek (gst_type_find_factory_get_type ()));
   g_type_class_unref (g_type_class_peek (gst_bin_get_type ()));
   g_type_class_unref (g_type_class_peek (gst_bus_get_type ()));

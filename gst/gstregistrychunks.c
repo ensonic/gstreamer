@@ -31,6 +31,8 @@
 #include <gst/gst_private.h>
 #include <gst/gstconfig.h>
 #include <gst/gstelement.h>
+#include <gst/gsttracer.h>
+#include <gst/gsttracerfactory.h>
 #include <gst/gsttypefind.h>
 #include <gst/gsttypefindfactory.h>
 #include <gst/gsturi.h>
@@ -332,6 +334,13 @@ gst_registry_chunks_save_feature (GList ** list, GstPluginFeature * feature)
     } else {
       gst_registry_chunks_save_const_string (list, "");
     }
+  } else if (GST_IS_TRACER_FACTORY (feature)) {
+    /* Initialize with zeroes because of struct padding and
+     * valgrind complaining about copying unitialized memory
+     */
+    pf = g_slice_new0 (GstRegistryChunkPluginFeature);
+    pf_size = sizeof (GstRegistryChunkPluginFeature);
+    chk = gst_registry_chunks_make_data (pf, pf_size);
   } else {
     GST_WARNING_OBJECT (feature, "unhandled feature type '%s'", type_name);
   }
@@ -650,6 +659,12 @@ gst_registry_chunks_load_feature (GstRegistry * registry, gchar ** in,
         factory->extensions[i - 1] = str;
       }
     }
+  } else if (GST_IS_TRACER_FACTORY (feature)) {
+    align (*in);
+    GST_DEBUG
+        ("Reading/casting for GstRegistryChunkPluginFeature at address %p",
+        *in);
+    unpack_element (*in, pf, GstRegistryChunkPluginFeature, end, fail);
   } else {
     GST_WARNING ("unhandled factory type : %s", G_OBJECT_TYPE_NAME (feature));
     goto fail;

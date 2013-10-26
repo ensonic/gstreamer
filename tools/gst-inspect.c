@@ -1132,6 +1132,7 @@ print_plugin_features (GstPlugin * plugin)
   GList *features, *origlist;
   gint num_features = 0;
   gint num_elements = 0;
+  gint num_tracers = 0;
   gint num_typefinders = 0;
   gint num_other = 0;
 
@@ -1173,6 +1174,10 @@ print_plugin_features (GstPlugin * plugin)
             gst_plugin_feature_get_name (feature));
 
       num_typefinders++;
+    } else if (GST_IS_TRACER_FACTORY (feature)) {
+      n_print ("  %s (%s)\n", gst_object_get_name (GST_OBJECT (feature)),
+          g_type_name (G_OBJECT_TYPE (feature)));
+      num_tracers++;
     } else if (feature) {
       n_print ("  %s (%s)\n", gst_object_get_name (GST_OBJECT (feature)),
           g_type_name (G_OBJECT_TYPE (feature)));
@@ -1190,6 +1195,8 @@ print_plugin_features (GstPlugin * plugin)
     n_print ("  +-- %d elements\n", num_elements);
   if (num_typefinders > 0)
     n_print ("  +-- %d typefinders\n", num_typefinders);
+  if (num_tracers > 0)
+    n_print ("  +-- %d tracers\n", num_tracers);
   if (num_other > 0)
     n_print ("  +-- %d other objects\n", num_other);
 
@@ -1206,6 +1213,12 @@ print_element_features (const gchar * element_name)
       GST_TYPE_TYPE_FIND_FACTORY);
   if (feature) {
     n_print ("%s: a typefind function\n", element_name);
+    return 0;
+  }
+  feature = gst_registry_find_feature (gst_registry_get (), element_name,
+      GST_TYPE_TRACER_FACTORY);
+  if (feature) {
+    n_print ("%s: a tracer module\n", element_name);
     return 0;
   }
 

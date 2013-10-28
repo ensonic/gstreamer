@@ -166,9 +166,16 @@ Problems / Open items
 =====================
 - when hooking into a timer, should we just have some predefined intervals?
 - how to trigger the shutdown processing?
+  gst_deinit() (apps can call it from atexit())
+- how to share the quark table from gst/gstquark?
+  use a separate table in gst/gsttracers or add a getter to gst/gstquark
+- how to chain tracers (use the rank?)
+  e.g. how can the stats tracer get data from rusage/mallinfo tracers
+  or should all tracers just log and we would use a gst-stats tool to collect
+  the data from the log and process it then (that would also solve the deinit()
+  issue)
 - when connecting to a running app, we can't easily get the 'current' state if
   logging is using a socket, as past events are not stored
-- how to associate a ::post with a ::pre invocation?
 
 
 Try it

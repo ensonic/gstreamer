@@ -193,9 +193,9 @@ gst_tracer_register (GstPlugin * plugin, const gchar * name, GType type)
 
 /* tracing helpers */
 
-static gboolean tracer_enabled = FALSE;
-
-static GList *tracers[GST_TRACER_HOOK_ID_LAST] = { NULL, };
+gboolean _priv_tracer_enabled = FALSE;
+/* TODO(ensonic): use GPtrArray ? */
+GList *_priv_tracers[GST_TRACER_HOOK_ID_LAST] = { NULL, };
 
 /* Initialize the debugging system */
 void
@@ -235,7 +235,7 @@ _priv_gst_tracer_init (void)
             j = 0;
             while (mask && (j < GST_TRACER_HOOK_ID_LAST)) {
               if (mask & 1) {
-                tracers[j] = g_list_prepend (tracers[j],
+                _priv_tracers[j] = g_list_prepend (_priv_tracers[j],
                     gst_object_ref (tracer));
                 GST_WARNING_OBJECT (tracer, "added tracer to hook %d", j);
               }
@@ -243,7 +243,7 @@ _priv_gst_tracer_init (void)
               j++;
             }
 
-            tracer_enabled = TRUE;
+            _priv_tracer_enabled = TRUE;
           } else {
             GST_WARNING_OBJECT (tracer,
                 "tracer with zero mask won't have any effect");
@@ -270,25 +270,20 @@ _priv_gst_tracer_deinit (void)
 
   /* shutdown tracers for final reports */
   for (i = 0; i < GST_TRACER_HOOK_ID_LAST; i++) {
-    for (node = tracers[i]; node; node = g_list_next (node)) {
+    for (node = _priv_tracers[i]; node; node = g_list_next (node)) {
       gst_object_unref (node->data);
     }
-    g_list_free (tracers[i]);
-    tracers[i] = NULL;
+    g_list_free (_priv_tracers[i]);
+    _priv_tracers[i] = NULL;
   }
-}
-
-gboolean
-gst_tracer_is_enabled (GstTracerHookId id)
-{
-  return tracer_enabled && (tracers[id] != NULL);
+  _priv_tracer_enabled = FALSE;
 }
 
 static void
 dispatch (GstTracerHookId id, guint64 ts, GstStructure * s)
 {
   GList *node;
-  for (node = tracers[id]; node; node = g_list_next (node)) {
+  for (node = _priv_tracers[id]; node; node = g_list_next (node)) {
     gst_tracer_invoke (node->data, id, ts, s);
   }
 }

@@ -4886,6 +4886,8 @@ gst_pad_push_event (GstPad * pad, GstEvent * event)
   g_return_val_if_fail (GST_IS_PAD (pad), FALSE);
   g_return_val_if_fail (GST_IS_EVENT (event), FALSE);
 
+  GST_TRACER_PAD_PUSH_EVENT_PRE (pad, event);
+
   if (GST_PAD_IS_SRC (pad)) {
     if (G_UNLIKELY (!GST_EVENT_IS_DOWNSTREAM (event)))
       goto wrong_direction;
@@ -4939,6 +4941,7 @@ gst_pad_push_event (GstPad * pad, GstEvent * event)
   }
   GST_OBJECT_UNLOCK (pad);
 
+  GST_TRACER_PAD_PUSH_EVENT_POST (pad, res);
   return res;
 
   /* ERROR handling */
@@ -4947,28 +4950,30 @@ wrong_direction:
     g_warning ("pad %s:%s pushing %s event in wrong direction",
         GST_DEBUG_PAD_NAME (pad), GST_EVENT_TYPE_NAME (event));
     gst_event_unref (event);
-    return FALSE;
+    goto done;
   }
 unknown_direction:
   {
     g_warning ("pad %s:%s has invalid direction", GST_DEBUG_PAD_NAME (pad));
     gst_event_unref (event);
-    return FALSE;
+    goto done;
   }
 flushed:
   {
     GST_DEBUG_OBJECT (pad, "We're flushing");
     GST_OBJECT_UNLOCK (pad);
     gst_event_unref (event);
-    return FALSE;
+    goto done;
   }
 eos:
   {
     GST_DEBUG_OBJECT (pad, "We're EOS");
     GST_OBJECT_UNLOCK (pad);
-    gst_event_unref (event);
-    return FALSE;
+    goto done;
   }
+done:
+  GST_TRACER_PAD_PUSH_EVENT_POST (pad, FALSE);
+  return FALSE;
 }
 
 /* Check if we can call the event function with the given event */

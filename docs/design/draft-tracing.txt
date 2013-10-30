@@ -73,7 +73,7 @@ Hooks
 - gst_element_query
 - gst_element_remove_pad
 - gst_pad_link
-- gst_pad_pull_range
+* gst_pad_pull_range
 * gst_pad_push
 * gst_pad_push_list
 - gst_pad_push_event

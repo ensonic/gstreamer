@@ -66,6 +66,8 @@ typedef enum
   GST_TRACER_MESSAGE_ID_PAD_PUSH_POST,
   GST_TRACER_MESSAGE_ID_PAD_PUSH_LIST_PRE,
   GST_TRACER_MESSAGE_ID_PAD_PUSH_LIST_POST,
+  GST_TRACER_MESSAGE_ID_PAD_PULL_RANGE_PRE,
+  GST_TRACER_MESSAGE_ID_PAD_PULL_RANGE_POST,
   GST_TRACER_MESSAGE_ID_LAST
 } GstTracerMessageId;
 
@@ -153,13 +155,30 @@ extern GList *_priv_tracers[GST_TRACER_HOOK_ID_LAST];
   } \
 }G_STMT_END
 
+#define GST_TRACER_PAD_PULL_RANGE_PRE(pad, offset, size) G_STMT_START{ \
+  if (GST_TRACER_IS_ENABLED(GST_TRACER_HOOK_ID_BUFFERS)) { \
+    gst_tracer_dispatch (GST_TRACER_HOOK_ID_BUFFERS, \
+        GST_TRACER_MESSAGE_ID_PAD_PULL_RANGE_PRE, gst_util_get_timestamp (), \
+        pad, offset, size); \
+  } \
+}G_STMT_END
+
+#define GST_TRACER_PAD_PULL_RANGE_POST(pad, buffer, res) G_STMT_START{ \
+  if (GST_TRACER_IS_ENABLED(GST_TRACER_HOOK_ID_BUFFERS)) { \
+    gst_tracer_dispatch (GST_TRACER_HOOK_ID_BUFFERS, \
+        GST_TRACER_MESSAGE_ID_PAD_PULL_RANGE_POST, gst_util_get_timestamp (), \
+        pad, buffer, res); \
+  } \
+}G_STMT_END
+
 #else /* !GST_DISABLE_GST_DEBUG */
 
 #define GST_TRACER_PAD_PUSH_PRE(pad, buffer)
 #define GST_TRACER_PAD_PUSH_POST(pad, res)
 #define GST_TRACER_PAD_PUSH_LIST_PRE(pad, list)
 #define GST_TRACER_PAD_PUSH_LIST_POST(pad, res)
-
+#define GST_TRACER_PAD_PULL_RANGE_PRE(pad, offset, size)
+#define GST_TRACER_PAD_PULL_RANGE_POST(pad, buffer, res)
 #endif /* GST_DISABLE_GST_DEBUG */
 
 G_END_DECLS

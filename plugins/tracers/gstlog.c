@@ -86,6 +86,14 @@ gst_log_tracer_invoke (GstTracer * self, GstTracerHookId hid,
       cat = GST_CAT_BUFFER_LIST;
       fmt = "pad=%" GST_PTR_FORMAT ", res=%d";
       break;
+    case GST_TRACER_MESSAGE_ID_PAD_PULL_RANGE_PRE:
+      cat = GST_CAT_BUFFER;
+      fmt = "pad=%" GST_PTR_FORMAT ", offset=%" G_GUINT64_FORMAT ", size=%u";
+      break;
+    case GST_TRACER_MESSAGE_ID_PAD_PULL_RANGE_POST:
+      cat = GST_CAT_BUFFER;
+      fmt = "pad=%" GST_PTR_FORMAT ", buffer=%" GST_PTR_FORMAT ", res=%d";
+      break;
     default:
       break;
   }

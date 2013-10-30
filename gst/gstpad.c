@@ -4444,6 +4444,8 @@ gst_pad_pull_range (GstPad * pad, guint64 offset, guint size,
   g_return_val_if_fail (*buffer == NULL
       || GST_IS_BUFFER (*buffer), GST_FLOW_ERROR);
 
+  GST_TRACER_PAD_PULL_RANGE_PRE (pad, offset, size);
+
   GST_OBJECT_LOCK (pad);
   if (G_UNLIKELY (GST_PAD_IS_FLUSHING (pad)))
     goto flushing;
@@ -4489,6 +4491,7 @@ probed_data:
 
   *buffer = res_buf;
 
+  GST_TRACER_PAD_PULL_RANGE_POST (pad, *buffer, ret);
   return ret;
 
   /* ERROR recovery here */
@@ -4497,14 +4500,16 @@ flushing:
     GST_CAT_LOG_OBJECT (GST_CAT_SCHEDULING, pad,
         "pullrange, but pad was flushing");
     GST_OBJECT_UNLOCK (pad);
-    return GST_FLOW_FLUSHING;
+    ret = GST_FLOW_FLUSHING;
+    goto done;
   }
 wrong_mode:
   {
     g_critical ("pullrange on pad %s:%s but it was not activated in pull mode",
         GST_DEBUG_PAD_NAME (pad));
     GST_OBJECT_UNLOCK (pad);
-    return GST_FLOW_ERROR;
+    ret = GST_FLOW_ERROR;
+    goto done;
   }
 probe_stopped:
   {
@@ -4524,14 +4529,15 @@ probe_stopped:
       }
     }
     GST_OBJECT_UNLOCK (pad);
-    return ret;
+    goto done;
   }
 not_linked:
   {
     GST_CAT_LOG_OBJECT (GST_CAT_SCHEDULING, pad,
         "pulling range, but it was not linked");
     GST_OBJECT_UNLOCK (pad);
-    return GST_FLOW_NOT_LINKED;
+    ret = GST_FLOW_NOT_LINKED;
+    goto done;
   }
 pull_range_failed:
   {
@@ -4539,7 +4545,7 @@ pull_range_failed:
     GST_CAT_LEVEL_LOG (GST_CAT_SCHEDULING,
         (ret >= GST_FLOW_EOS) ? GST_LEVEL_INFO : GST_LEVEL_WARNING,
         pad, "pullrange failed, flow: %s", gst_flow_get_name (ret));
-    return ret;
+    goto done;
   }
 probe_stopped_unref:
   {
@@ -4551,8 +4557,11 @@ probe_stopped_unref:
       ret = GST_FLOW_EOS;
     if (*buffer == NULL)
       gst_buffer_unref (res_buf);
-    return ret;
+    goto done;
   }
+done:
+  GST_TRACER_PAD_PULL_RANGE_POST (pad, NULL, ret);
+  return ret;
 }
 
 /* must be called with pad object lock */

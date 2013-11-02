@@ -13,7 +13,7 @@ Certain GStreamer core function (such as gst_pad_push or gst_element_add_pad)
 will call into the tracer. The tracer will dispatch into loaded tracing plugins.
 Developers will be able to select a list of plugins by setting an environment
 variable, such as GST_TRACE="meminfo,dbus". One can also pass parameters to
-plugins:  GST_TRACE="log(events;buffers),stats(all)".
+plugins:  GST_TRACE="log(events,buffers);stats(all)".
 When then plugins are loaded, we'll add them to certain hooks according to that
 they are interested in.
 
@@ -23,7 +23,8 @@ GST_XXX_CHANNEL=file:///path/to/file or GST_XXX_CHANNEL=tcp://<ip>:<port>.
 If no channel is set, the tracing goes to stderr like the debug logging.
 
 TODO(ensonic): we might want to have GST_{DEBUG|TRACE)_FORMAT envars as well.
-These could be raw, ansi-color, binary, suitable for babeltrace (see lttng), ...
+These could be raw, ansi-color, binary, suitable for babeltrace (Common Trace
+Format (CTF), e.g. used by lttng), ...
 
 With these we can deprecate GST_DEBUG_FILE and GST_DEBUG_NO_COLOR.
 
@@ -160,6 +161,8 @@ Problems / Open items
   or should all tracers just log and we would use a gst-stats tool to collect
   the data from the log and process it then (that would also solve the deinit()
   issue)
+- if we split the tracers and apps that use the tracing data, shalll we require
+  a binary log or parse the existing log?
 - when connecting to a running app, we can't easily get the 'current' state if
   logging is using a socket, as past events are not stored
 

@@ -169,7 +169,7 @@ Problems / Open items
 
 Try it
 ======
-GST_DEBUG="GST_TRACER:4,GST_BUFFER*:7,GST_EVENT:7,GST_MESSAGE:7,log:7" GST_TRACE=log gst-launch-1.0 fakesrc num-buffers=10 ! fakesink
+GST_DEBUG="GST_TRACER:4,GST_BUFFER*:7,GST_EVENT:7,GST_MESSAGE:7,query:7,log:7" GST_TRACE=log gst-launch-1.0 fakesrc num-buffers=10 ! fakesink
 - traces for buffer flow in TRACE level and default category
 
 GST_DEBUG="GST_TRACER:4" GST_TRACE=stats gst-launch-1.0 fakesrc num-buffers=10 ! queue ! fakesink

@@ -140,6 +140,7 @@ GstTraceEvent {
   //     the front-ends using gst_structure_{from,to}_string()
   //   - we would have 'ts' and 'owner' in the structure
   //   - the structure 'name-id' can be used to lookup the GstTraceEventClass
+  // - GVariant ?
 }
 
 Frontends can:
@@ -210,7 +211,10 @@ Problems / Open items
       where active and what parameters where passed.
   - separate log
     - use a binary format?
-    - performance (we're writing two logs at the same time)
+    - worse performance (we're writing two logs at the same time)
+    - need to be careful when people to GST_DEBUG_CHANNEL=stderr and
+      GST_TRACE_CHANNEL=stderr (use a shared channel, but what about the
+      formats?)
   - debug log
     - the tracer subsystem would need to log the GST_TRACE at a level that is
       active
@@ -226,5 +230,6 @@ Try it
 GST_DEBUG="GST_TRACER:4,GST_BUFFER*:7,GST_EVENT:7,GST_MESSAGE:7,query:7,log:7" GST_TRACE=log gst-launch-1.0 fakesrc num-buffers=10 ! fakesink
 - traces for buffer flow in TRACE level and default category
 
-GST_DEBUG="GST_TRACER:4" GST_TRACE=stats gst-launch-1.0 fakesrc num-buffers=10 ! queue ! fakesink
+GST_DEBUG="GST_TRACER:4,stats:7" GST_TRACE=stats gst-launch-1.0 2>trace.log fakesrc num-buffers=10 sizetype=fixed ! queue ! fakesink
+gst-stats-1.0 trace.log
 - print some pipeline stats on exit

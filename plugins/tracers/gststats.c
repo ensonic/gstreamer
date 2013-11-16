@@ -49,8 +49,6 @@ typedef struct
   /* human readable pad name and details */
   gchar *name;
   guint index;
-  /* in which thread does it operate */
-  gpointer thread_id;
   /* for pre + post */
   GstClockTime last_ts;
   /* hierarchy */
@@ -152,7 +150,6 @@ fill_pad_stats (GstStatsTracer * self, GstPad * pad)
   GstPadStats *stats = g_slice_new0 (GstPadStats);
 
   stats->index = self->num_pads++;
-  stats->thread_id = g_thread_self ();
   stats->parent_ix = G_MAXUINT;
 
   log_trace (gst_structure_new ("new-pad",
@@ -160,7 +157,7 @@ fill_pad_stats (GstStatsTracer * self, GstPad * pad)
           "type", G_TYPE_STRING, G_OBJECT_TYPE_NAME (pad),
           "is-ghostpad", G_TYPE_BOOLEAN, GST_IS_GHOST_PAD (pad),
           "pad-direction", GST_TYPE_PAD_DIRECTION, GST_PAD_DIRECTION (pad),
-          NULL));
+          "thread-id", G_TYPE_UINT, GPOINTER_TO_UINT (g_thread_self ()), NULL));
 
   return stats;
 }

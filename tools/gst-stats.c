@@ -55,7 +55,7 @@ typedef struct
   /* first and last activity on the pad, expected next_ts */
   GstClockTime first_ts, last_ts, next_ts;
   /* in which thread does it operate */
-  gpointer thread_id;
+  guint thread_id;
   /* hierarchy */
   guint parent_ix;
 } GstPadStats;
@@ -120,12 +120,14 @@ new_pad_stats (GstStructure * s)
   gchar *type;
   gboolean is_ghost_pad;
   GstPadDirection dir;
+  guint thread_id;
 
   gst_structure_get (s,
       "ix", G_TYPE_UINT, &ix,
       "type", G_TYPE_STRING, &type,
       "is-ghostpad", G_TYPE_BOOLEAN, &is_ghost_pad,
-      "pad-direction", GST_TYPE_PAD_DIRECTION, &dir, NULL);
+      "pad-direction", GST_TYPE_PAD_DIRECTION, &dir,
+      "thread-id", G_TYPE_UINT, &thread_id, NULL);
 
   stats = g_slice_new0 (GstPadStats);
   if (is_ghost_pad)
@@ -137,11 +139,20 @@ new_pad_stats (GstStructure * s)
   stats->dir = dir;
   stats->min_size = G_MAXUINT;
   stats->first_ts = stats->last_ts = stats->next_ts = GST_CLOCK_TIME_NONE;
-  //stats->thread_id = g_thread_self();
+  stats->thread_id = thread_id;
 
   if (pads->len <= ix)
     g_ptr_array_set_size (pads, ix + 1);
   g_ptr_array_index (pads, ix) = stats;
+
+  if (thread_id) {
+    GstThreadStats *thread_stats;
+    if (!(thread_stats = g_hash_table_lookup (threads,
+                GUINT_TO_POINTER (thread_id)))) {
+      thread_stats = g_slice_new0 (GstThreadStats);
+      g_hash_table_insert (threads, GUINT_TO_POINTER (thread_id), thread_stats);
+    }
+  }
 }
 
 static void
@@ -169,6 +180,12 @@ new_element_stats (GstStructure * s)
   if (elements->len <= ix)
     g_ptr_array_set_size (elements, ix + 1);
   g_ptr_array_index (elements, ix) = stats;
+}
+
+static void
+free_thread_stats (gpointer data)
+{
+  g_slice_free (GstThreadStats, data);
 }
 
 static void
@@ -333,7 +350,7 @@ print_pad_stats (gpointer value, gpointer user_data)
 {
   GstPadStats *stats = (GstPadStats *) value;
 
-  if (stats->thread_id == user_data) {
+  if (stats->thread_id == GPOINTER_TO_UINT (user_data)) {
     /* there seem to be some temporary pads */
     if (stats->num_buffers) {
       GstClockTimeDiff running =
@@ -391,7 +408,6 @@ print_thread_stats (gpointer key, gpointer value, gpointer user_data)
    * g_hash_table_foreach::user_data
    */
   puts ("  Pad Statistics:");
-  //g_hash_table_foreach(pads,print_pad_stats,key);
   g_slist_foreach (list, print_pad_stats, key);
 }
 
@@ -582,7 +598,7 @@ init (void)
 
   elements = g_ptr_array_new_with_free_func (free_element_stats);
   pads = g_ptr_array_new_with_free_func (free_pad_stats);
-  threads = g_hash_table_new_full (NULL, NULL, NULL, (GDestroyNotify) g_free);
+  threads = g_hash_table_new_full (NULL, NULL, NULL, free_thread_stats);
 
   return TRUE;
 }
@@ -626,7 +642,6 @@ print_stats (void)
     GSList *list = NULL;
 
     g_ptr_array_foreach (pads, sort_pad_stats, &list);
-    //g_slist_foreach(list,print_thread_stats, NULL);
     g_hash_table_foreach (threads, print_thread_stats, list);
     puts ("");
     g_slist_free (list);

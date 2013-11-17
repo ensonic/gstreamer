@@ -50,7 +50,7 @@ typedef struct
   GstPadDirection dir;
   /* buffer statistics */
   guint num_buffers;
-  guint num_readonly, num_preroll, num_discont, num_gap, num_delta;
+  guint num_discont, num_gap, num_delta;
   guint min_size, max_size, avg_size;
   /* first and last activity on the pad, expected next_ts */
   GstClockTime first_ts, last_ts, next_ts;
@@ -365,9 +365,8 @@ print_pad_stats (gpointer value, gpointer user_data)
       g_snprintf (fullname, 30, "%s.%s", elem_stats->name, stats->name);
 
       printf
-          ("    %c %-30.30s: buffers %7u (ro %5u,pre %3u,dis %5u,gap %5u,dlt %5u),",
-          (stats->dir == GST_PAD_SRC) ? '>' : '<', fullname,
-          stats->num_buffers, stats->num_readonly, stats->num_preroll,
+          ("    %c %-30.30s: buffers %7u (dis %5u,gap %5u,dlt %5u),",
+          (stats->dir == GST_PAD_SRC) ? '>' : '<', fullname, stats->num_buffers,
           stats->num_discont, stats->num_gap, stats->num_delta);
       if (stats->min_size == stats->max_size) {
         printf (" size (min/avg/max) ......./%7u/.......,", stats->avg_size);

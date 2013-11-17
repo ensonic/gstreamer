@@ -18,10 +18,6 @@
  * Free Software Foundation, Inc., 51 Franklin St, Fifth Floor,
  * Boston, MA 02110-1301, USA.
  */
-/* TODO(ensonic):
- * - pass thread-id
- * - get rid of the 'name' fields or pass
- */
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -46,8 +42,7 @@ G_DEFINE_TYPE_WITH_CODE (GstStatsTracer, gst_stats_tracer, GST_TYPE_TRACER,
 
 typedef struct
 {
-  /* human readable pad name and details */
-  gchar *name;
+  /* we can't rely on the address to be unique over time */
   guint index;
   /* for pre + post */
   GstClockTime last_ts;
@@ -57,8 +52,7 @@ typedef struct
 
 typedef struct
 {
-  /* human readable element name */
-  gchar *name;
+  /* we can't rely on the address to be unique over time */
   guint index;
   /* for pre + post */
   GstClockTime last_ts;
@@ -96,6 +90,7 @@ fill_element_stats (GstStatsTracer * self, GstElement * element)
 
   log_trace (gst_structure_new ("new-element",
           "ix", G_TYPE_UINT, stats->index,
+          "name", G_TYPE_STRING, GST_OBJECT_NAME (element),
           "type", G_TYPE_STRING, G_OBJECT_TYPE_NAME (element),
           "is-bin", G_TYPE_BOOLEAN, GST_IS_BIN (element), NULL));
 
@@ -128,11 +123,6 @@ get_element_stats (GstStatsTracer * self, GstElement * element)
       stats->parent_ix = parent_stats->index;
     }
   }
-  if (G_UNLIKELY (!stats->name)) {
-    if (GST_OBJECT_NAME (element)) {
-      stats->name = g_strdup (GST_OBJECT_NAME (element));
-    }
-  }
   return stats;
 }
 
@@ -154,6 +144,7 @@ fill_pad_stats (GstStatsTracer * self, GstPad * pad)
 
   log_trace (gst_structure_new ("new-pad",
           "ix", G_TYPE_UINT, stats->index,
+          "name", G_TYPE_STRING, GST_OBJECT_NAME (pad),
           "type", G_TYPE_STRING, G_OBJECT_TYPE_NAME (pad),
           "is-ghostpad", G_TYPE_BOOLEAN, GST_IS_GHOST_PAD (pad),
           "pad-direction", GST_TYPE_PAD_DIRECTION, GST_PAD_DIRECTION (pad),
@@ -223,11 +214,6 @@ get_pad_stats (GstStatsTracer * self, GstPad * pad)
       GstElementStats *elem_stats = get_element_stats (self, elem);
 
       stats->parent_ix = elem_stats->index;
-      if (GST_OBJECT_NAME (elem) && GST_OBJECT_NAME (pad)) {
-        stats->name =
-            g_strdup_printf ("%s_%s", GST_OBJECT_NAME (elem),
-            GST_OBJECT_NAME (pad));
-      }
     }
   }
   return stats;
@@ -306,11 +292,9 @@ do_element_stats (GstStatsTracer * self, GstPad * pad, GstClockTime elapsed1,
   }
 
   if (!parent) {
-    GstPadStats *pad_stats = get_pad_stats (self, pad);
-
     printf ("%" GST_TIME_FORMAT
-        " transmission on unparented target pad %s -> %s_%s\n",
-        GST_TIME_ARGS (elapsed), pad_stats->name,
+        " transmission on unparented target pad %s_%s -> %s_%s\n",
+        GST_TIME_ARGS (elapsed), GST_DEBUG_PAD_NAME (pad),
         GST_DEBUG_PAD_NAME (peer_pad));
     return;
   }

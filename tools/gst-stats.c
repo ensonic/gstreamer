@@ -117,13 +117,14 @@ new_pad_stats (GstStructure * s)
 {
   GstPadStats *stats;
   guint ix;
-  gchar *type;
+  gchar *type, *name;
   gboolean is_ghost_pad;
   GstPadDirection dir;
   guint thread_id;
 
   gst_structure_get (s,
       "ix", G_TYPE_UINT, &ix,
+      "name", G_TYPE_STRING, &name,
       "type", G_TYPE_STRING, &type,
       "is-ghostpad", G_TYPE_BOOLEAN, &is_ghost_pad,
       "pad-direction", GST_TYPE_PAD_DIRECTION, &dir,
@@ -133,6 +134,7 @@ new_pad_stats (GstStructure * s)
   if (is_ghost_pad)
     num_ghostpads++;
   num_pads++;
+  stats->name = name;
   stats->type_name = type;
   stats->index = ix;
   stats->is_ghost_pad = is_ghost_pad;
@@ -160,18 +162,20 @@ new_element_stats (GstStructure * s)
 {
   GstElementStats *stats;
   guint ix;
-  gchar *type;
+  gchar *type, *name;
   gboolean is_bin;
 
   gst_structure_get (s,
-      "ix", G_TYPE_UINT, &ix, "type", G_TYPE_STRING, &type,
-      "is-bin", G_TYPE_BOOLEAN, &is_bin, NULL);
+      "ix", G_TYPE_UINT, &ix,
+      "name", G_TYPE_STRING, &name,
+      "type", G_TYPE_STRING, &type, "is-bin", G_TYPE_BOOLEAN, &is_bin, NULL);
 
   stats = g_slice_new0 (GstElementStats);
   if (is_bin)
     num_bins++;
   num_elements++;
   stats->index = ix;
+  stats->name = name;
   stats->type_name = type;
   stats->is_bin = is_bin;
   stats->first_ts = GST_CLOCK_TIME_NONE;
@@ -355,10 +359,14 @@ print_pad_stats (gpointer value, gpointer user_data)
     if (stats->num_buffers) {
       GstClockTimeDiff running =
           GST_CLOCK_DIFF (stats->first_ts, stats->last_ts);
+      GstElementStats *elem_stats = get_element_stats (stats->parent_ix);
+      gchar fullname[30 + 1];
+
+      g_snprintf (fullname, 30, "%s.%s", elem_stats->name, stats->name);
 
       printf
-          ("    %c %-25.25s: buffers %7u (ro %5u,pre %3u,dis %5u,gap %5u,dlt %5u),",
-          (stats->dir == GST_PAD_SRC) ? '>' : '<', stats->name,
+          ("    %c %-30.30s: buffers %7u (ro %5u,pre %3u,dis %5u,gap %5u,dlt %5u),",
+          (stats->dir == GST_PAD_SRC) ? '>' : '<', fullname,
           stats->num_buffers, stats->num_readonly, stats->num_preroll,
           stats->num_discont, stats->num_gap, stats->num_delta);
       if (stats->min_size == stats->max_size) {

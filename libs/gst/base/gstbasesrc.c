@@ -749,11 +749,39 @@ gst_base_src_query_latency (GstBaseSrc * src, gboolean * live,
 void
 gst_base_src_set_blocksize (GstBaseSrc * src, guint blocksize)
 {
+  guint old_blocksize;
+
   g_return_if_fail (GST_IS_BASE_SRC (src));
+
+  old_blocksize = src->blocksize;
 
   GST_OBJECT_LOCK (src);
   src->blocksize = blocksize;
   GST_OBJECT_UNLOCK (src);
+  if (src->priv->pool && (old_blocksize != blocksize)) {
+    GstBufferPool *pool = src->priv->pool;
+    GstStructure *config = gst_buffer_pool_get_config (pool);
+    GstCaps *caps;
+    guint size, min, max;
+    /* TODO: reconfigure pool, if we run our own
+     * if it is not our own, request reconfiguration?
+     * how to check if it is our pool? GST_IS_BASE_SRC(pool->parent)?
+     */
+    GST_WARNING_OBJECT (src, "Need to reconfigure the pool ?");
+
+    gst_buffer_pool_config_get_params (config, &caps, &size, &min, &max);
+    if (blocksize > size) {
+      GST_WARNING_OBJECT (src, "newsize %u > poolsize %u", blocksize, size);
+      gst_buffer_pool_set_active (pool, FALSE);
+      gst_buffer_pool_config_set_params (config, caps, size, min, max);
+      if (!gst_buffer_pool_set_config (pool, config)) {
+        GST_WARNING_OBJECT (src, "failed to set config");
+      } else {
+        if (!gst_buffer_pool_set_active (pool, TRUE))
+          GST_WARNING_OBJECT (src, "failed to re-activate the pool");
+      }
+    }
+  }
 }
 
 /**
@@ -1421,8 +1449,10 @@ gst_base_src_default_alloc (GstBaseSrc * src, guint64 offset,
   GstBaseSrcPrivate *priv = src->priv;
 
   if (priv->pool) {
+    GST_LOG_OBJECT (src, "Alloc buffer from pool: size %u", size);
     ret = gst_buffer_pool_acquire_buffer (priv->pool, buffer, NULL);
   } else if (size != -1) {
+    GST_LOG_OBJECT (src, "Alloc plain buffer: size %u", size);
     *buffer = gst_buffer_new_allocate (priv->allocator, size, &priv->params);
     if (G_UNLIKELY (*buffer == NULL))
       goto alloc_failed;
@@ -1459,6 +1489,7 @@ gst_base_src_default_create (GstBaseSrc * src, guint64 offset,
     goto no_function;
 
   if (*buffer == NULL) {
+    GST_LOG_OBJECT (src, "Alloc own buffer: size %u", size);
     /* downstream did not provide us with a buffer to fill, allocate one
      * ourselves */
     ret = bclass->alloc (src, offset, size, &res_buf);
@@ -2953,6 +2984,8 @@ gst_base_src_set_allocation (GstBaseSrc * basesrc, GstBufferPool * pool,
   GstBufferPool *oldpool;
   GstBaseSrcPrivate *priv = basesrc->priv;
 
+  GST_DEBUG_OBJECT (basesrc, "pool %p, allocator %p", pool, allocator);
+
   if (pool) {
     GST_DEBUG_OBJECT (basesrc, "activate pool");
     if (!gst_buffer_pool_set_active (pool, TRUE))
@@ -3012,7 +3045,6 @@ gst_base_src_activate_pool (GstBaseSrc * basesrc, gboolean active)
   return res;
 }
 
-
 static gboolean
 gst_base_src_decide_allocation_default (GstBaseSrc * basesrc, GstQuery * query)
 {
@@ -3021,8 +3053,7 @@ gst_base_src_decide_allocation_default (GstBaseSrc * basesrc, GstQuery * query)
   guint size, min, max;
   GstAllocator *allocator;
   GstAllocationParams params;
-  GstStructure *config;
-  gboolean update_allocator;
+  gboolean update_allocator, update_pool;
 
   gst_query_parse_allocation (query, &outcaps, NULL);
 
@@ -3040,23 +3071,40 @@ gst_base_src_decide_allocation_default (GstBaseSrc * basesrc, GstQuery * query)
 
   if (gst_query_get_n_allocation_pools (query) > 0) {
     gst_query_parse_nth_allocation_pool (query, 0, &pool, &size, &min, &max);
+    GST_DEBUG_OBJECT (basesrc, "parsed query: %p, size=%u, min=%u, max=%u",
+        pool, size, min, max);
 
     if (pool == NULL) {
       /* no pool, we can make our own */
       GST_DEBUG_OBJECT (basesrc, "no pool, making new pool");
       pool = gst_buffer_pool_new ();
     }
+    update_pool = TRUE;
   } else {
-    pool = NULL;
-    size = min = max = 0;
+    /* no pool requested, we can make our own if a blocksize is set */
+    if (basesrc->blocksize > 0) {
+      size = basesrc->blocksize;
+      GST_DEBUG_OBJECT (basesrc, "no pool, making new pool, size: %u", size);
+    } else if (basesrc->blocksize == -1) {
+      size = DEFAULT_BLOCKSIZE;
+      GST_DEBUG_OBJECT (basesrc, "no pool, making new pool, default size: %u",
+          size);
+    } else {
+      size = 0;
+    }
+    pool = size ? gst_buffer_pool_new () : NULL;
+    min = max = 0;
+    update_pool = FALSE;
   }
 
   /* now configure */
   if (pool) {
-    config = gst_buffer_pool_get_config (pool);
+    GstStructure *config = gst_buffer_pool_get_config (pool);
     gst_buffer_pool_config_set_params (config, outcaps, size, min, max);
     gst_buffer_pool_config_set_allocator (config, allocator, &params);
-    gst_buffer_pool_set_config (pool, config);
+    if (!gst_buffer_pool_set_config (pool, config)) {
+      GST_WARNING_OBJECT (basesrc, "failed to set config");
+    }
   }
 
   if (update_allocator)
@@ -3067,7 +3115,10 @@ gst_base_src_decide_allocation_default (GstBaseSrc * basesrc, GstQuery * query)
     gst_object_unref (allocator);
 
   if (pool) {
-    gst_query_set_nth_allocation_pool (query, 0, pool, size, min, max);
+    if (update_pool)
+      gst_query_set_nth_allocation_pool (query, 0, pool, size, min, max);
+    else
+      gst_query_add_allocation_pool (query, pool, size, min, max);
     gst_object_unref (pool);
   }
 

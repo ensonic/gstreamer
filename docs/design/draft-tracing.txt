@@ -5,6 +5,15 @@ This subsystem will provide a mechanism to get structured tracing info from
 GStreamer applications. This can be used for post-run analysis as well as for
 live introspection.
 
+Use cases
+---------
+* I'd like to get statistics from a running application.
+
+* I'd like to to understand which parts of my pipeline use how many ressources.
+
+Design
+------
+
 The system brings the following new items:
 core hooks: probes in the core api, that will expose internal state when tracing
   is in use
@@ -153,6 +162,12 @@ Plugins ideas
 
 We can have some under gstreamer/plugins/tracers/
 
+latency
+-------
+- register to buffer and event flow
+- send custom event on buffer flow at source elements
+- catch events on event transfer at sink elements
+
 meminfo
 -------
 - register to an interval-timer hook.
@@ -233,3 +248,6 @@ GST_DEBUG="GST_TRACER:4,GST_BUFFER*:7,GST_EVENT:7,GST_MESSAGE:7,query:7,log:7" G
 GST_DEBUG="GST_TRACER:4,stats:7" GST_TRACE=stats gst-launch-1.0 2>trace.log fakesrc num-buffers=10 sizetype=fixed ! queue ! fakesink
 gst-stats-1.0 trace.log
 - print some pipeline stats on exit
+
+GST_DEBUG="GST_TRACER:4,latency:7" GST_TRACE=latency gst-launch-1.0 audiotestsrc num-buffers=10 ! audioconvert ! volume volume=0.7 ! autoaudiosink
+- print processing latencies

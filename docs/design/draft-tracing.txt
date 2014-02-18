@@ -130,13 +130,16 @@ a message, a query or a measurement.
 
 GstTraceEventClass { // meta data for events, can be printed from gst-inspect
   gchar *name;         // something that front ends can use as a label for a graph
+                       // should ideally contain a unit
   gchar *description;  // something that front ends can use as a tooltip
   
   GstTraceEventScope scope; // a way to associate the event
   // enum(per process, thread, element, pad, ...)
 
-  Gst??? type; // some kind of hierarchical event type?
+  Gst??? type; // some kind of hierarchical event type? or make name a 'path'
   // event.eos, event.seek.flushing, measurement.cpu.load, ...
+  
+  GstTraceEventClassFlags flags;  // cummulative, ...
 }
 
 GstTraceEvent {
@@ -152,9 +155,26 @@ GstTraceEvent {
   // - GVariant ?
 }
 
+instead of "gpointer owner", we could send a trace-events that register new
+owners with an id (atomic int) and unregister them at the end of their
+live-time. Then we can reference the owner as "guint owner".
+
+We could also consider to add each value as a READABLE gobject property. The
+property has name/description. We could use qdata for scope and flags (or have
+some new property flags).
+We would also need a new "notify" signal, so that value-change notifications 
+would include a time-stamp. This way the tracers would not needs to be aware of
+the logging. The core tracer would register the notify handlers and emit the
+log.
+
+The log would have a bunch of streams. A stream has a reference to the 
+GstTraceEventClass.
+
 Frontends can:
 - do a events over time histogram
-- plot curves of values over time
+- plot curves of values over time or deltas
+- show gauges
+- collect statisticts (min, max, avg, ...)
 
 
 Plugins ideas
@@ -216,6 +236,11 @@ gst-stats
 ---------
 A terminal app that shows summary/running stats like the summary gst-tracelib
 shows at the end of a run.
+
+live-graphers
+-------------
+Maybe we can even feed the log into existing live graphers, with a little driver
+* https://github.com/dkogan/feedgnuplot
 
 
 Problems / Open items

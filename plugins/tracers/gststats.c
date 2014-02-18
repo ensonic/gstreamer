@@ -153,6 +153,9 @@ free_element_stats (gpointer data)
  * in: a ghost pad
  * out: the bin owning the ghostpad
  */
+/* TODO(ensonic): gst_pad_get_parent_element() would not work here, should we
+ * add this as new api, e.g. gst_pad_find_parent_element();
+ */
 static GstElement *
 get_real_pad_parent (GstPad * pad)
 {

@@ -70,7 +70,6 @@ free_thread_stats (gpointer data)
   g_slice_free (GstThreadStats, data);
 }
 
-
 static void
 gst_rusage_tracer_class_init (GstRUsageTracerClass * klass)
 {

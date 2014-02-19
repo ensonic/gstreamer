@@ -242,12 +242,12 @@ Problems / Open items
 
 Try it
 ======
-GST_DEBUG="GST_TRACER:4,GST_BUFFER*:7,GST_EVENT:7,GST_MESSAGE:7,query:7,log:7" GST_TRACE=log gst-launch-1.0 fakesrc num-buffers=10 ! fakesink
-- traces for buffer flow in TRACE level and default category
+GST_DEBUG="GST_TRACER:7,GST_BUFFER*:7,GST_EVENT:7,GST_MESSAGE:7" GST_TRACE=log gst-launch-1.0 fakesrc num-buffers=10 ! fakesink
+- traces for buffer flow in TRACE level
 
-GST_DEBUG="GST_TRACER:4,stats:7" GST_TRACE=stats gst-launch-1.0 2>trace.log fakesrc num-buffers=10 sizetype=fixed ! queue ! fakesink
+GST_DEBUG="GST_TRACER:7" GST_TRACE=stats gst-launch-1.0 2>trace.log fakesrc num-buffers=10 sizetype=fixed ! queue ! fakesink
 gst-stats-1.0 trace.log
 - print some pipeline stats on exit
 
-GST_DEBUG="GST_TRACER:4,latency:7" GST_TRACE=latency gst-launch-1.0 audiotestsrc num-buffers=10 ! audioconvert ! volume volume=0.7 ! autoaudiosink
+GST_DEBUG="GST_TRACER:7" GST_TRACE=latency gst-launch-1.0 audiotestsrc num-buffers=10 ! audioconvert ! volume volume=0.7 ! autoaudiosink
 - print processing latencies

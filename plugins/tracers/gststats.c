@@ -429,7 +429,7 @@ do_push_buffer_list_post (GstStatsTracer * self, va_list var_args)
 }
 
 static void
-do_pull_range_list_pre (GstStatsTracer * self, va_list var_args)
+do_pull_range_pre (GstStatsTracer * self, va_list var_args)
 {
   guint64 ts = va_arg (var_args, guint64);
   GstPad *pad = va_arg (var_args, GstPad *);
@@ -438,7 +438,7 @@ do_pull_range_list_pre (GstStatsTracer * self, va_list var_args)
 }
 
 static void
-do_pull_range_list_post (GstStatsTracer * self, va_list var_args)
+do_pull_range_post (GstStatsTracer * self, va_list var_args)
 {
   guint64 ts = va_arg (var_args, guint64);
   GstPad *this_pad = va_arg (var_args, GstPad *);
@@ -550,10 +550,10 @@ gst_stats_tracer_invoke (GstTracer * obj, GstTracerHookId hid,
       do_push_buffer_list_post (self, var_args);
       break;
     case GST_TRACER_MESSAGE_ID_PAD_PULL_RANGE_PRE:
-      do_pull_range_list_pre (self, var_args);
+      do_pull_range_pre (self, var_args);
       break;
     case GST_TRACER_MESSAGE_ID_PAD_PULL_RANGE_POST:
-      do_pull_range_list_post (self, var_args);
+      do_pull_range_post (self, var_args);
       break;
     case GST_TRACER_MESSAGE_ID_PAD_PUSH_EVENT_PRE:
       do_push_event_pre (self, var_args);
